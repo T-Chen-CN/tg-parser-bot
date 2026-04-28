@@ -2,7 +2,7 @@
 
 **Telegram 社交媒体解析 Bot** — 将任意社交媒体链接发送给 Bot，自动提取视频/图片/文案并以卡片形式回复。
 
-基于 [NoneBot2](https://github.com/nonebot/nonebot2) + [nonebot-plugin-parser](https://github.com/fllesser/nonebot-plugin-parser) 构建，支持 9 大平台，开箱即用。
+基于 [NoneBot2](https://github.com/nonebot/nonebot2) + [nonebot-plugin-parser](https://github.com/fllesser/nonebot-plugin-parser) 构建，支持 9 大平台，一行命令完成部署。
 
 ---
 
@@ -22,94 +22,111 @@
 | 项目 | 要求 |
 |------|------|
 | Python | ≥ 3.10 |
-| ffmpeg | 必须安装（yt-dlp 依赖） |
-| Telegram Bot Token | 从 [@BotFather](https://t.me/BotFather) 获取 |
-| 网络 | 能够访问目标社交媒体域名 |
+| ffmpeg | 必须安装（脚本自动处理） |
+| Telegram Bot Token | 部署时填入 |
 
 ---
 
-## 安装步骤
+## 一键部署
 
-### 第一步：安装系统依赖
-
-```bash
-# Ubuntu / Debian
-apt update && apt install -y ffmpeg
-```
-
-### 第二步：克隆项目
+### Linux / macOS
 
 ```bash
+# 克隆项目
 git clone https://github.com/T-Chen-CN/tg-parser-bot.git
 cd tg-parser-bot
+
+# 运行部署脚本（自动安装依赖 + 引导填入 Token）
+bash setup.sh
 ```
 
-### 第三步：创建虚拟环境
+### Windows
+
+```powershell
+# 使用 PowerShell 或 WSL
+git clone https://github.com/T-Chen-CN/tg-parser-bot.git
+cd tg-parser-bot
+.\setup.sh
+```
+
+部署脚本会自动完成：
+1. 检查并安装 ffmpeg（如需要）
+2. 创建 Python 虚拟环境
+3. 安装全部 Python 依赖
+4. 引导输入 Telegram Bot Token（**唯一需要手动输入的内容**）
+
+---
+
+## 获取 Telegram Bot Token
+
+1. 打开 Telegram，搜索 **@BotFather**
+2. 发送 `/newbot`
+3. 按提示设置 Bot 名称和用户名
+4. 复制 BotFather 返回的 Token，粘贴到部署脚本中
+
+---
+
+## 启动方式
+
+### 直接运行（前台）
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate    # Windows: .venv\Scripts\activate
-```
-
-### 第四步：安装 Python 依赖
-
-```bash
-pip install -r requirements.txt
-```
-
-### 第五步：配置
-
-```bash
-# 复制配置文件
-cp .env.example .env   # 如果没有 .env.example，直接创建 .env 文件
-
-# 编辑 .env，填入你的 Telegram Bot Token
-nano .env
-```
-
-`.env` 内容：
-
-```env
-DRIVER=~fastapi+~httpx
-TELEGRAM_BOTS=[{"token": "你的Telegram_Bot_Token"}]
-```
-
-> **注意**：没有代理时直接删除 `TELEGRAM_PROXY=` 这一行。
-
-### 第六步：启动
-
-```bash
+source .venv/bin/activate
 python bot.py
 ```
 
-看到以下输出即启动成功：
+### 后台运行
 
+```bash
+nohup python bot.py > bot.log 2>&1 &
 ```
-04-28 17:00:00 [SUCCESS] nonebot | Running NoneBot...
-04-28 17:00:00 [SUCCESS] nonebot | Loaded adapters: Telegram
-04-28 17:00:00 [INFO] uvicorn | Uvicorn running on http://127.0.0.1:8080
-04-28 17:00:01 [INFO] nonebot | Telegram | Start poll
+
+### systemd 服务（开机自启，推荐）
+
+创建 `/etc/systemd/system/tg-parser-bot.service`：
+
+```ini
+[Unit]
+Description=Telegram Parser Bot
+After=network.target
+
+[Service]
+Type=simple
+User=你的用户名
+WorkingDirectory=/path/to/tg-parser-bot
+ExecStart=/path/to/tg-parser-bot/.venv/bin/python bot.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable tg-parser-bot
+sudo systemctl start tg-parser-bot
 ```
 
 ---
 
 ## 使用方式
 
-1. 在 Telegram 中找到你的 Bot（搜索你申请的 Bot 名字）
-2. 点击 **Start** 或发送 `/start`
-3. 直接粘贴社交媒体分享链接（支持完整分享文案，Bot 自动提取链接）
-4. Bot 自动解析并回复媒体卡片
+1. 在 Telegram 中找到你的 Bot 并点击 **Start**
+2. 直接粘贴社交媒体分享链接（支持完整分享文案，Bot 自动提取链接）
+3. Bot 自动解析并回复媒体卡片
 
-### 示例
-
-发送以下任意内容，Bot 都会自动处理：
+### 支持的链接类型
 
 ```
-https://v.douyin.com/LxjCiel45u8/
-https://www.xiaohongshu.com/explore/xxxxx
-https://b23.tv/xxxxx
-https://x.com/user/status/xxxxx
-https://youtube.com/shorts/xxxxx
+抖音：      https://v.douyin.com/xxx
+TikTok：    https://www.tiktok.com/@user/video/xxx
+哔哩哔哩：  https://b23.tv/xxxxx
+小红书：    https://www.xiaohongshu.com/explore/xxxxx
+微博：      https://weibo.com/xxx
+快手：      https://v.kuaishou.com/xxx
+YouTube：   https://youtube.com/shorts/xxx
+Twitter/X： https://x.com/user/status/xxx
+AcFun：     https://www.acfun.cn/v/acxxxxx
 ```
 
 ---
@@ -119,8 +136,10 @@ https://youtube.com/shorts/xxxxx
 ```
 tg-parser-bot/
 ├── bot.py                    # 入口文件，NoneBot 初始化
-├── .env                      # 配置文件（Token 等）
+├── setup.sh                  # 交互式部署脚本（替代手动配置）
 ├── requirements.txt          # Python 依赖列表
+├── .env                      # 运行时配置（setup.sh 自动生成）
+├── .gitignore
 ├── plugins/                  # 本地插件目录
 │   ├── douyin_url_pick.py   # 抖音专项补丁：URL优选 + iOS headers + 无水印fallback + 视频尺寸注入
 │   ├── merged_render.py      # 媒体+文字合并为单条消息
@@ -150,48 +169,27 @@ tg-parser-bot/
 ## 常见问题
 
 ### Q: Bot 没有响应
-- 检查 `.env` 中的 `BOT_TOKEN` 是否正确
-- 检查网络是否能访问 Telegram API（国内服务器需要代理）
 - 确认 Bot 已经点击 Start
+- 确认服务器网络可以访问 Telegram API（国内服务器需自备代理出口）
+- 检查 `bot.log` 中的错误信息
 
 ### Q: 抖音视频下载失败（403 / 404）
-- 这是抖音的 CDN 风控，非代码问题
+- 这是抖音 CDN 风控，非代码问题
 - 代码已包含 play → playwm fallback，大部分视频可自动兜底
-- 尝试发送其他抖音链接
 
-### Q: 视频尺寸未识别
-- 部分视频 metadata 不完整，Bot 会跳过尺寸注入，不影响发送
+### Q: 需要代理吗？
+- 如果服务器网络无法直接访问 Telegram API，需自行配置代理
+- 具体方式取决于你的代理工具，NoneBot2 会自动使用系统环境变量中的代理设置
 
-### Q: 如何后台运行？
-
-**方式一：nohup**
-```bash
-nohup python bot.py > bot.log 2>&1 &
-```
-
-**方式二：systemd（推荐，开机自启）**
-
-创建 `/etc/systemd/system/tg-parser-bot.service`：
-```ini
-[Unit]
-Description=Telegram Parser Bot
-After=network.target
-
-[Service]
-Type=simple
-User=你的用户名
-WorkingDirectory=/path/to/tg-parser-bot
-ExecStart=/path/to/tg-parser-bot/.venv/bin/python bot.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
+### Q: 如何更新代码？
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable tg-parser-bot
-sudo systemctl start tg-parser-bot
+cd tg-parser-bot
+git pull
+source .venv/bin/activate
+pip install -r requirements.txt -U
+# 重启 bot
+pkill -f 'python bot.py' && python bot.py
 ```
 
 ---
@@ -200,7 +198,6 @@ sudo systemctl start tg-parser-bot
 
 - [NoneBot2](https://github.com/nonebot/nonebot2)
 - [nonebot-plugin-parser](https://github.com/fllesser/nonebot-plugin-parser)
-- [bilibili-api](https://github.com/MoyuScript/bilibili-api)
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp)
 
 ---
