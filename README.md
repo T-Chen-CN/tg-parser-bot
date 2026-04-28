@@ -81,30 +81,23 @@ python bot.py
 nohup python bot.py > bot.log 2>&1 &
 ```
 
-### systemd 服务（开机自启，推荐）
-
-创建 `/etc/systemd/system/tg-parser-bot.service`：
-
-```ini
-[Unit]
-Description=Telegram Parser Bot
-After=network.target
-
-[Service]
-Type=simple
-User=你的用户名
-WorkingDirectory=/path/to/tg-parser-bot
-ExecStart=/path/to/tg-parser-bot/.venv/bin/python bot.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-```
+### systemd 开机自启（推荐，一行命令搞定）
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable tg-parser-bot
-sudo systemctl start tg-parser-bot
+# 在项目目录下执行（需要 sudo 权限）
+sudo bash setup-service.sh
+```
+
+执行后 Bot 会立即启动，并自动注册为开机自启服务。
+
+**常用命令**
+
+```bash
+systemctl status tg-parser-bot   # 查看运行状态
+journalctl -u tg-parser-bot -f   # 实时查看日志
+sudo systemctl restart tg-parser-bot  # 重启
+sudo systemctl stop tg-parser-bot     # 停止
+sudo systemctl disable tg-parser-bot   # 取消开机自启
 ```
 
 ---
@@ -136,7 +129,8 @@ AcFun：     https://www.acfun.cn/v/acxxxxx
 ```
 tg-parser-bot/
 ├── bot.py                    # 入口文件，NoneBot 初始化
-├── setup.sh                  # 交互式部署脚本（替代手动配置）
+├── setup.sh                  # 交互式部署脚本（一键部署）
+├── setup-service.sh          # 开机自启脚本（一键配置 systemd）
 ├── requirements.txt          # Python 依赖列表
 ├── .env                      # 运行时配置（setup.sh 自动生成）
 ├── .gitignore
