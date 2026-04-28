@@ -94,8 +94,9 @@ echo -e "${YELLOW}[5/6] 安装 Python 依赖（请稍候）...${NC}"
 
 # 用 curl bootstrap pip（避免 ensurepip 依赖）
 curl -sS https://bootstrap.pypa.io/get-pip.py | .venv/bin/python3
-.venv/bin/pip install --upgrade pip -q
-.venv/bin/pip install -r requirements.txt -q
+# 强制使用官方 PyPI（腾讯等国内镜像可能缺包）
+.venv/bin/pip install --upgrade pip -q -i https://pypi.org/simple/
+.venv/bin/pip install -r requirements.txt -q -i https://pypi.org/simple/
 
 echo " OK"
 
