@@ -32,38 +32,44 @@ fi
 echo -e "${YELLOW}[2/6] 安装 python3-venv ...${NC}"
 PYTHON_CMD=$(command -v python3)
 PYTHON_VERSION=$($PYTHON_CMD --version 2>&1 | awk '{print $2}')
-PYTHON_PKG="python${PYTHON_VERSION%%.*}-venv"
-if ! $PYTHON_CMD -m venv --help &> /dev/null; then
+PYTHON_MAJOR_MINOR=$(echo $PYTHON_VERSION | cut -d. -f1,2)
+PYTHON_PKG="python${PYTHON_MAJOR_MINOR}-venv"
+
+# 测试 venv 是否真正可用（用 --without-pip 避免 ensurepip 依赖）
+rm -rf /tmp/.test_venv
+if ! $PYTHON_CMD -m venv --without-pip /tmp/.test_venv &> /dev/null; then
+    echo "  正在安装 $PYTHON_PKG ..."
     $SUDO apt update && $SUDO apt install -y $PYTHON_PKG
+    rm -rf /tmp/.test_venv
+    # 再次测试
+    if ! $PYTHON_CMD -m venv --without-pip /tmp/.test_venv &> /dev/null; then
+        echo -e "${RED}  ERROR: python3-venv 安装失败，请手动运行：${NC}"
+        echo "  sudo apt install $PYTHON_PKG"
+        exit 1
+    fi
     echo "  $PYTHON_PKG 安装完成"
-else
-    echo "  OK"
 fi
+rm -rf /tmp/.test_venv
+echo "  OK"
 
 # ---- 步骤 3：检查 Python ----
 echo -e "${YELLOW}[3/6] 检查 Python ...${NC}"
 if [ -z "$PYTHON_CMD" ]; then
-    echo -e "${RED}  ERROR: 未找到 python3，请先安装 Python 3.10+${NC}"
+    echo -e "${RED}  ERROR: 未找到 python3${NC}"
     exit 1
 fi
 echo "  OK ($PYTHON_VERSION)"
 
 # ---- 步骤 4：创建虚拟环境 ----
 echo -e "${YELLOW}[4/6] 创建虚拟环境 ...${NC}"
-if [ ! -d ".venv" ]; then
-    $PYTHON_CMD -m venv .venv
-    echo "  OK"
-else
-    echo "  已存在，跳过"
-fi
-
-# 激活虚拟环境
-source .venv/bin/activate
+rm -rf .venv
+$PYTHON_CMD -m venv --without-pip .venv
+echo "  OK"
 
 # ---- 步骤 5：安装 Python 依赖 ----
 echo -e "${YELLOW}[5/6] 安装 Python 依赖（请稍候）...${NC}"
-pip install --upgrade pip -q
-pip install -r requirements.txt -q
+.venv/bin/pip install --upgrade pip -q
+.venv/bin/pip install -r requirements.txt -q
 echo "  OK"
 
 # ---- 步骤 6：配置 Token ----
@@ -79,7 +85,6 @@ if [ -z "$BOT_TOKEN" ]; then
     exit 1
 fi
 
-# 写入 .env
 cat > .env << EOF
 DRIVER=~fastapi+~httpx
 TELEGRAM_BOTS=[{"token": "$BOT_TOKEN"}]
@@ -91,9 +96,6 @@ echo -e "${GREEN}=== 安装完成 ===${NC}"
 echo ""
 echo "启动 Bot："
 echo "  source .venv/bin/activate && python bot.py"
-echo ""
-echo "后台运行："
-echo "  nohup python bot.py > bot.log 2>&1 &"
 echo ""
 echo "停止 Bot："
 echo "  pkill -f 'python bot.py'"
